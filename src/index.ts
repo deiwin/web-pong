@@ -23,6 +23,7 @@ import {
 import { collide } from './geo';
 
 interface GameState {
+  gameOver: boolean;
   paddleState: PaddleState;
   ballState: BallState;
 }
@@ -35,6 +36,18 @@ function detectCollision(gameState: GameState): GameState {
     return gameState;
   }
 }
+
+const detectGameOver = ({ width, height }: ViewportSize) => (
+  gameState: GameState
+): GameState => {
+  const { ballState } = gameState;
+  const viewportRect = { x: 0, y: 0, width, height };
+  return R.assoc(
+    'gameOver',
+    !collide(viewportRect, ballRect(ballState)),
+    gameState
+  );
+};
 
 const updateGameState = (
   gameState: GameState,
@@ -54,15 +67,21 @@ const updateGameState = (
       ballState: updateBallState(timestamp, viewportSize),
     }),
     detectCollision,
+    detectGameOver(viewportSize),
   ])(gameState);
 };
 
-const updateWorld = ({ paddleState, ballState }: GameState) => {
-  updateWorldPaddle(paddleState);
-  updateWorldBall(ballState);
+const updateWorld = ({ gameOver, paddleState, ballState }: GameState) => {
+  if (gameOver) {
+    document.body.innerText = 'Game Over!';
+  } else {
+    updateWorldPaddle(paddleState);
+    updateWorldBall(ballState);
+  }
 };
 
 const initialGameState: GameState = {
+  gameOver: false,
   paddleState: initialPaddleState,
   ballState: initialBallState,
 };
