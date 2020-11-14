@@ -34,6 +34,8 @@ function createBallElement(): HTMLElement {
   element.style.borderRadius = '12px';
   element.style.backgroundColor = 'red';
   element.style.position = 'absolute';
+  element.style.left = '0px';
+  element.style.top = '0px';
   return element;
 }
 const ball = createBallElement();
@@ -78,6 +80,6 @@ export const updateBallState = (
 };
 
 export const updateWorldBall = ({ topLeft: { x, y } }: BallState) => {
-  ball.style.left = `${Math.round(x)}px`;
-  ball.style.top = `${Math.round(y)}px`;
+  // prettier-ignore
+  ball.style.transform = `translateX(${Math.round(x)}px) translateY(${Math.round(y)}px)`;
 };
