@@ -6,7 +6,8 @@ import * as R from 'Ramda';
 import {
   ControllerState,
   controllerStateObservable,
-  calculateTotalControllerTimes,
+  totalControllerTimes,
+  totalTimeDiff,
 } from './controller';
 
 interface GameState {
@@ -91,21 +92,14 @@ const updatePaddleState = (
   viewportSize: ViewportSize,
   controllerState: ControllerState
 ) => (paddleState: PaddleState): PaddleState => {
-  const buttonPressesToApply = calculateTotalControllerTimes(
-    timestamp,
-    controllerState
-  );
-  const timeDeltas = R.mergeWith(
-    R.subtract,
-    buttonPressesToApply,
-    paddleState.appliedButtonPressTimes
-  );
-  const totalTimeDiff =
-    R.defaultTo(0, timeDeltas['ArrowDown']) +
-    -1 * R.defaultTo(0, timeDeltas['ArrowUp']);
+  const buttonPressesToApply = totalControllerTimes(timestamp, controllerState);
+  const diff = totalTimeDiff({
+    old: paddleState.appliedButtonPressTimes,
+    next: buttonPressesToApply,
+  });
   const newTop = S.pipe([
     R.defaultTo(0),
-    S.add(totalTimeDiff * paddleSpeed),
+    S.add(diff * paddleSpeed),
     S.max(0),
     S.min(viewportSize.height - leftPaddle.offsetHeight),
   ])(paddleState.top);

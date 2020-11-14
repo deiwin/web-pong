@@ -11,6 +11,7 @@ interface ButtonState {
   realizedPressTime: number;
   keyDownSince: Maybe<number>;
 }
+type TotalControllerTimes = { [key: string]: number };
 
 const calculateTimeToApply = (timestamp: number) => ({
   realizedPressTime,
@@ -19,11 +20,24 @@ const calculateTimeToApply = (timestamp: number) => ({
   const unrealizedTime = S.maybe(0)(S.flip(S.sub)(timestamp))(keyDownSince);
   return R.defaultTo(0, realizedPressTime) + unrealizedTime;
 };
-export function calculateTotalControllerTimes(
+export function totalControllerTimes(
   timestamp: number,
   controllerState: ControllerState
 ): { [key: string]: number } {
   return S.map(calculateTimeToApply(timestamp))(controllerState);
+}
+export function totalTimeDiff({
+  old,
+  next,
+}: {
+  old: TotalControllerTimes;
+  next: TotalControllerTimes;
+}): number {
+  const timeDeltas = R.mergeWith(R.subtract, next, old);
+  return (
+    R.defaultTo(0, timeDeltas['ArrowDown']) +
+    -1 * R.defaultTo(0, timeDeltas['ArrowUp'])
+  );
 }
 
 function includes<T>(val: T): (arr: Array<T>) => boolean {
