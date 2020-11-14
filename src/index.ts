@@ -1,4 +1,4 @@
-import { interval, fromEvent } from 'rxjs';
+import { interval, fromEvent, animationFrameScheduler } from 'rxjs';
 import { take, map, startWith, withLatestFrom, scan } from 'rxjs/operators';
 
 interface Velocity {
@@ -55,7 +55,7 @@ document.body.appendChild(ball);
 
 const initialVelocity: Velocity = {x: 4, y: 8};
 
-const ticks = interval(10).pipe(take(1000));
+const ticks = interval(0, animationFrameScheduler).pipe(take(1000));
 const viewportSizeObservable = fromEvent(window, 'resize').pipe(
   startWith({}),
   map(_ => getViewportSize())
