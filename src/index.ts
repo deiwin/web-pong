@@ -1,6 +1,16 @@
 import { interval, fromEvent } from 'rxjs';
 import { take, map, startWith, withLatestFrom, scan } from 'rxjs/operators';
 
+interface Velocity {
+  x: number;
+  y: number;
+}
+
+interface ViewportState {
+  height: number;
+  width: number;
+}
+
 function createBallElement() {
   const element = document.createElement('div');
   element.style.width = '25px';
@@ -11,12 +21,12 @@ function createBallElement() {
   return element;
 }
 
-const getViewportWidth = () =>
+const getViewportWidth = (): number =>
   Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
-const getViewportHeight = () =>
+const getViewportHeight = (): number =>
   Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
 
-const updateVelocity = (velocity, viewportState) => {
+const updateVelocity = (velocity: Velocity, viewportState: ViewportState): Velocity => {
   const rect = ball.getBoundingClientRect();
 
   const shouldFlipHorizontally =
@@ -35,7 +45,7 @@ const updateVelocity = (velocity, viewportState) => {
   }
 };
 
-const updateWorld = (velocity) => {
+const updateWorld = (velocity: Velocity) => {
   ball.style.left = `${ball.offsetLeft + velocity.x}px`;
   ball.style.top = `${ball.offsetTop + velocity.y}px`;
 };
@@ -43,7 +53,7 @@ const updateWorld = (velocity) => {
 const ball = createBallElement();
 document.body.appendChild(ball);
 
-const initialVelocity = {x: 4, y: 8};
+const initialVelocity: Velocity = {x: 4, y: 8};
 
 const ticks = interval(10).pipe(take(1000));
 const viewportStateObservable = fromEvent(window, 'resize').pipe(
