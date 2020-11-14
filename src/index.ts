@@ -1,11 +1,9 @@
-import { interval, fromEvent, animationFrameScheduler, NEVER } from 'rxjs';
-import { take, map, startWith, withLatestFrom, scan, merge, filter } from 'rxjs/operators';
+import { interval, fromEvent, animationFrameScheduler } from 'rxjs';
+import { take, map, startWith, withLatestFrom, scan, } from 'rxjs/operators';
 import * as S from 'sanctuary';
 import * as R from 'Ramda';
 
-interface Maybe<A> {
-  '@@type': 'sanctuary/Maybe';
-}
+import { ControllerState, controllerStateObservable, calculateTotalControllerTimes } from './controller';
 
 interface GameState {
   paddleState: PaddleState;
@@ -25,13 +23,6 @@ interface Velocity {
 interface ViewportSize {
   height: number;
   width: number;
-}
-
-type ControllerState = { [key:string]:ButtonState; };
-
-interface ButtonState {
-  realizedPressTime: number;
-  keyDownSince: Maybe<number>;
 }
 
 function createBallElement(): HTMLElement {
@@ -59,49 +50,6 @@ document.body.appendChild(leftPaddle);
 
 const paddleSpeed = 0.5;
 
-function includes<T>(val: T): (arr: Array<T>) => boolean {
-  return S.any(S.equals(val));
-}
-function isRelevantKey(event: Event): boolean {
-  return includes((event as KeyboardEvent).code)(['ArrowDown', 'ArrowUp']);
-}
-
-function updateControllerState(acc: ControllerState, event: Event): ControllerState {
-  const keyboardEvent = event as KeyboardEvent
-  const keyDownSinceLens = R.lensPath([keyboardEvent.code, 'keyDownSince']);
-
-  if (keyboardEvent.type == 'keydown') {
-    const setTimestampIfUnset: ((x: Maybe<number> | undefined) => Maybe<number>) = S.pipe([
-      R.defaultTo(S.Nothing),
-      S.fromMaybe(event.timeStamp),
-      S.Just
-    ]);
-
-    return R.over(keyDownSinceLens, setTimestampIfUnset, acc);
-  } else if (keyboardEvent.type == 'keyup') {
-    const realizedTimeLens = R.lensPath([keyboardEvent.code, 'realizedPressTime']);
-    const realizedTime = S.pipe([
-      R.view(keyDownSinceLens),
-      R.defaultTo(S.Nothing),
-      S.maybe(0)(S.flip(S.sub)(event.timeStamp))
-    ])(acc);
-    return S.pipe([
-      R.over(realizedTimeLens, S.pipe([R.defaultTo(0), S.add(realizedTime)])),
-      R.set(keyDownSinceLens, S.Nothing),
-    ])(acc);
-  }
-  console.error('Unexpected!');
-  return acc;
-}
-
-const initialControllerState = {};
-const controllerStateObservable = NEVER.pipe(
-  merge(fromEvent(document, 'keydown'), fromEvent(document, 'keyup')),
-  filter(isRelevantKey),
-  scan(updateControllerState, initialControllerState),
-  startWith(initialControllerState)
-)
-
 const getViewportSize = (): ViewportSize => ({
   height: Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0),
   width: Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
@@ -120,11 +68,7 @@ const updateGameState = (
 const updatePaddleState =
   (timestamp: number, viewportSize: ViewportSize, controllerState: ControllerState) =>
   (paddleState: PaddleState): PaddleState => {
-  const calculateTimeToApply = ({realizedPressTime, keyDownSince}: ButtonState) => {
-    const unrealizedTime = S.maybe(0)(S.flip(S.sub)(timestamp))(keyDownSince)
-    return R.defaultTo(0, realizedPressTime) + unrealizedTime;
-  };
-  const buttonPressesToApply = S.map(calculateTimeToApply)(controllerState);
+  const buttonPressesToApply = calculateTotalControllerTimes(timestamp, controllerState);
   const timeDeltas = R.mergeWith(R.subtract, buttonPressesToApply, paddleState.appliedButtonPressTimes);
   const totalTimeDiff = R.defaultTo(0, timeDeltas['ArrowDown']) + (-1 * R.defaultTo(0, timeDeltas['ArrowUp']));
   const newTop = S.pipe([
