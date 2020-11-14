@@ -1,6 +1,7 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+const { DefinePlugin } = require('webpack')
 
 module.exports = {
   mode: 'development',
@@ -17,6 +18,9 @@ module.exports = {
   },
   resolve: {
     extensions: ['.ts', '.js'],
+    fallback: {
+      util: require.resolve('util/')
+    }
   },
   output: {
     filename: 'main.js',
@@ -24,6 +28,9 @@ module.exports = {
   },
   plugins: [
     new CleanWebpackPlugin({cleanStaleWebpackAssets: false}),
-    new HtmlWebpackPlugin()
+    new HtmlWebpackPlugin(),
+    new DefinePlugin({
+      'process.env.NODE_DEBUG': JSON.stringify(process.env.NODE_DEBUG)
+    })
   ]
 };
