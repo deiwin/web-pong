@@ -1,6 +1,14 @@
+import * as S from 'sanctuary';
+import * as R from 'Ramda';
+
 import { ViewportSize } from './viewport';
 
+interface Maybe<A> {
+  '@@type': 'sanctuary/Maybe';
+}
+
 export interface BallState {
+  lastUpdateTimestamp: Maybe<number>;
   topLeft: Point;
   velocity: Velocity;
 }
@@ -14,8 +22,9 @@ interface Velocity {
 }
 
 export const initialBallState = {
+  lastUpdateTimestamp: S.Nothing,
   topLeft: { x: 0, y: 0 },
-  velocity: { x: 4, y: 8 },
+  velocity: { x: 0.3, y: 0.5 },
 };
 
 function createBallElement(): HTMLElement {
@@ -30,38 +39,45 @@ function createBallElement(): HTMLElement {
 const ball = createBallElement();
 document.body.appendChild(ball);
 
-export const updateBallState = (viewportSize: ViewportSize) => ({
-  topLeft,
-  velocity,
-}: BallState): BallState => {
+export const updateBallState = (
+  timestamp: number,
+  viewportSize: ViewportSize
+) => ({ lastUpdateTimestamp, topLeft, velocity }: BallState): BallState => {
+  const timeDiff: number = S.maybe(0)(S.flip(S.sub)(timestamp))(
+    lastUpdateTimestamp
+  );
+
   const left = topLeft.x;
   const right = left + ball.offsetWidth;
   const top = topLeft.y;
   const bottom = top + ball.offsetHeight;
 
   const shouldFlipHorizontally =
-    (right + velocity.x > viewportSize.width && velocity.x > 0) ||
-    (left + velocity.x < 0 && velocity.x < 0);
+    (right + velocity.x * timeDiff > viewportSize.width && velocity.x > 0) ||
+    (left + velocity.x * timeDiff < 0 && velocity.x < 0);
   const xMultiplier = shouldFlipHorizontally ? -1 : 1;
 
   const shouldFlipVertically =
-    (bottom + velocity.y > viewportSize.height && velocity.y > 0) ||
-    (top + velocity.y < 0 && velocity.y < 0);
+    (bottom + velocity.y * timeDiff > viewportSize.height && velocity.y > 0) ||
+    (top + velocity.y * timeDiff < 0 && velocity.y < 0);
   const yMultiplier = shouldFlipVertically ? -1 : 1;
 
+  const newVelocity = {
+    x: xMultiplier * velocity.x,
+    y: yMultiplier * velocity.y,
+  };
+
   return {
+    lastUpdateTimestamp: S.Just(timestamp),
     topLeft: {
-      x: topLeft.x + xMultiplier * velocity.x,
-      y: topLeft.y + yMultiplier * velocity.y,
+      x: topLeft.x + newVelocity.x * timeDiff,
+      y: topLeft.y + newVelocity.y * timeDiff,
     },
-    velocity: {
-      x: xMultiplier * velocity.x,
-      y: yMultiplier * velocity.y,
-    },
+    velocity: newVelocity,
   };
 };
 
 export const updateWorldBall = ({ topLeft: { x, y } }: BallState) => {
-  ball.style.left = `${x}px`;
-  ball.style.top = `${y}px`;
+  ball.style.left = `${Math.round(x)}px`;
+  ball.style.top = `${Math.round(y)}px`;
 };

@@ -37,7 +37,7 @@ const updateGameState = (
   return R.evolve(
     {
       paddleState: updatePaddleState(timestamp, viewportSize, controllerState),
-      ballState: updateBallState(viewportSize),
+      ballState: updateBallState(timestamp, viewportSize),
     },
     gameState
   );
