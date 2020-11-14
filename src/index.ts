@@ -1,5 +1,6 @@
 import { interval, animationFrameScheduler } from 'rxjs';
 import { take, map, withLatestFrom, scan } from 'rxjs/operators';
+import * as S from 'sanctuary';
 import * as R from 'Ramda';
 
 import { ControllerState, controllerStateObservable } from './controller';
@@ -8,6 +9,7 @@ import {
   initialPaddleState,
   updatePaddleState,
   updateWorldPaddle,
+  paddleRect,
 } from './paddle';
 import { ViewportSize, viewportSizeObservable } from './viewport';
 import {
@@ -15,11 +17,23 @@ import {
   initialBallState,
   updateBallState,
   updateWorldBall,
+  ballRect,
+  forceDirection,
 } from './ball';
+import { collide } from './geo';
 
 interface GameState {
   paddleState: PaddleState;
   ballState: BallState;
+}
+
+function detectCollision(gameState: GameState): GameState {
+  const { paddleState, ballState } = gameState;
+  if (collide(paddleRect(paddleState), ballRect(ballState))) {
+    return R.evolve({ ballState: forceDirection(1) }, gameState);
+  } else {
+    return gameState;
+  }
 }
 
 const updateGameState = (
@@ -34,13 +48,13 @@ const updateGameState = (
     controllerState: ControllerState;
   }
 ): GameState => {
-  return R.evolve(
-    {
+  return S.pipe([
+    R.evolve({
       paddleState: updatePaddleState(timestamp, viewportSize, controllerState),
       ballState: updateBallState(timestamp, viewportSize),
-    },
-    gameState
-  );
+    }),
+    detectCollision,
+  ])(gameState);
 };
 
 const updateWorld = ({ paddleState, ballState }: GameState) => {
@@ -53,7 +67,7 @@ const initialGameState: GameState = {
   ballState: initialBallState,
 };
 
-const ticks = interval(0, animationFrameScheduler).pipe(take(1000));
+const ticks = interval(0, animationFrameScheduler).pipe(take(5000));
 
 ticks
   .pipe(

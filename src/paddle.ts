@@ -7,6 +7,7 @@ import {
   totalTimeDiff,
 } from './controller';
 import { ViewportSize } from './viewport';
+import { Rect } from './geo';
 
 export interface PaddleState {
   top: number;
@@ -17,6 +18,15 @@ export const initialPaddleState: PaddleState = {
   top: 0,
   appliedButtonPressTimes: {},
 };
+
+export function paddleRect({ top }: PaddleState): Rect {
+  return {
+    x: 0,
+    y: top,
+    width: leftPaddle.offsetWidth,
+    height: leftPaddle.offsetHeight,
+  };
+}
 
 function createPaddle(): HTMLElement {
   const element = document.createElement('div');

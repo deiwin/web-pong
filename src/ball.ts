@@ -2,6 +2,7 @@ import * as S from 'sanctuary';
 import * as R from 'Ramda';
 
 import { ViewportSize } from './viewport';
+import { Rect } from './geo';
 
 interface Maybe<A> {
   '@@type': 'sanctuary/Maybe';
@@ -24,7 +25,28 @@ interface Velocity {
 export const initialBallState = {
   lastUpdateTimestamp: S.Nothing,
   topLeft: { x: 0, y: 0 },
-  velocity: { x: 0.3, y: 0.5 },
+  velocity: { x: 0.3, y: 0.1 },
+};
+
+export function ballRect({ topLeft: { x, y } }: BallState): Rect {
+  return {
+    x,
+    y,
+    width: ball.offsetWidth,
+    height: ball.offsetHeight,
+  };
+}
+
+const chooseSelfOrInverse = (chooser: (x: number) => (x: number) => number) => (
+  x: number
+) => {
+  return chooser(x)(-1 * x);
+};
+export const forceDirection = (direction: number) => (
+  ballState: BallState
+): BallState => {
+  const chooser = direction > 0 ? S.max : S.min;
+  return R.evolve({ velocity: { x: chooseSelfOrInverse(chooser) } }, ballState);
 };
 
 function createBallElement(): HTMLElement {
@@ -55,8 +77,7 @@ export const updateBallState = (
   const bottom = top + ball.offsetHeight;
 
   const shouldFlipHorizontally =
-    (right + velocity.x * timeDiff > viewportSize.width && velocity.x > 0) ||
-    (left + velocity.x * timeDiff < 0 && velocity.x < 0);
+    right + velocity.x * timeDiff > viewportSize.width && velocity.x > 0;
   const xMultiplier = shouldFlipHorizontally ? -1 : 1;
 
   const shouldFlipVertically =
