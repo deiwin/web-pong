@@ -11,7 +11,7 @@ interface ViewportSize {
   width: number;
 }
 
-function createBallElement() {
+function createBallElement(): HTMLElement {
   const element = document.createElement('div');
   element.style.width = '25px';
   element.style.height = '25px';
@@ -20,6 +20,31 @@ function createBallElement() {
   element.style.position = 'absolute';
   return element;
 }
+
+function createPaddle(): HTMLElement {
+  const element = document.createElement('div');
+  element.style.width = '15px';
+  element.style.height = '75px';
+  element.style.backgroundColor = 'blue';
+  element.style.position = 'absolute';
+  return element;
+}
+const leftPaddle = createPaddle();
+leftPaddle.style.left = '0px';
+leftPaddle.style.top = '0px';
+document.body.appendChild(leftPaddle);
+
+const paddleSpeed = 25;
+const movePaddle = (paddle: HTMLElement) => (event: Event) => {
+  const keyboardEvent = event as KeyboardEvent
+  if (keyboardEvent.code == 'ArrowDown') {
+    leftPaddle.style.top = `${leftPaddle.offsetTop + paddleSpeed}px`;
+  } else if (keyboardEvent.code == 'ArrowUp') {
+    leftPaddle.style.top = `${leftPaddle.offsetTop - paddleSpeed}px`;
+  }
+  console.log(event);
+};
+fromEvent(document, 'keydown').subscribe(movePaddle(leftPaddle));
 
 const getViewportSize = (): ViewportSize => ({
   height: Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0),
