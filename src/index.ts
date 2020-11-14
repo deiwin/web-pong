@@ -1,9 +1,13 @@
 import { interval, fromEvent, animationFrameScheduler } from 'rxjs';
-import { take, map, startWith, withLatestFrom, scan, } from 'rxjs/operators';
+import { take, map, startWith, withLatestFrom, scan } from 'rxjs/operators';
 import * as S from 'sanctuary';
 import * as R from 'Ramda';
 
-import { ControllerState, controllerStateObservable, calculateTotalControllerTimes } from './controller';
+import {
+  ControllerState,
+  controllerStateObservable,
+  calculateTotalControllerTimes,
+} from './controller';
 
 interface GameState {
   paddleState: PaddleState;
@@ -12,8 +16,8 @@ interface GameState {
 
 interface PaddleState {
   top: number;
-  appliedButtonPressTimes: { [key:string]: number };
-};
+  appliedButtonPressTimes: { [key: string]: number };
+}
 
 interface Velocity {
   x: number;
@@ -51,31 +55,59 @@ document.body.appendChild(leftPaddle);
 const paddleSpeed = 0.5;
 
 const getViewportSize = (): ViewportSize => ({
-  height: Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0),
-  width: Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
+  height: Math.max(
+    document.documentElement.clientHeight || 0,
+    window.innerHeight || 0
+  ),
+  width: Math.max(
+    document.documentElement.clientWidth || 0,
+    window.innerWidth || 0
+  ),
 });
 
 const updateGameState = (
   gameState: GameState,
-  {timestamp, viewportSize, controllerState}: {timestamp: number, viewportSize: ViewportSize, controllerState: ControllerState}
+  {
+    timestamp,
+    viewportSize,
+    controllerState,
+  }: {
+    timestamp: number;
+    viewportSize: ViewportSize;
+    controllerState: ControllerState;
+  }
 ): GameState => {
-  return R.evolve({
-    paddleState: updatePaddleState(timestamp, viewportSize, controllerState),
-    velocity: updateVelocity(viewportSize)
-  }, gameState);
+  return R.evolve(
+    {
+      paddleState: updatePaddleState(timestamp, viewportSize, controllerState),
+      velocity: updateVelocity(viewportSize),
+    },
+    gameState
+  );
 };
 
-const updatePaddleState =
-  (timestamp: number, viewportSize: ViewportSize, controllerState: ControllerState) =>
-  (paddleState: PaddleState): PaddleState => {
-  const buttonPressesToApply = calculateTotalControllerTimes(timestamp, controllerState);
-  const timeDeltas = R.mergeWith(R.subtract, buttonPressesToApply, paddleState.appliedButtonPressTimes);
-  const totalTimeDiff = R.defaultTo(0, timeDeltas['ArrowDown']) + (-1 * R.defaultTo(0, timeDeltas['ArrowUp']));
+const updatePaddleState = (
+  timestamp: number,
+  viewportSize: ViewportSize,
+  controllerState: ControllerState
+) => (paddleState: PaddleState): PaddleState => {
+  const buttonPressesToApply = calculateTotalControllerTimes(
+    timestamp,
+    controllerState
+  );
+  const timeDeltas = R.mergeWith(
+    R.subtract,
+    buttonPressesToApply,
+    paddleState.appliedButtonPressTimes
+  );
+  const totalTimeDiff =
+    R.defaultTo(0, timeDeltas['ArrowDown']) +
+    -1 * R.defaultTo(0, timeDeltas['ArrowUp']);
   const newTop = S.pipe([
     R.defaultTo(0),
     S.add(totalTimeDiff * paddleSpeed),
     S.max(0),
-    S.min(viewportSize.height - leftPaddle.offsetHeight)
+    S.min(viewportSize.height - leftPaddle.offsetHeight),
   ])(paddleState.top);
   return {
     top: newTop,
@@ -83,26 +115,28 @@ const updatePaddleState =
   };
 };
 
-const updateVelocity = (viewportSize: ViewportSize) => (velocity: Velocity): Velocity => {
+const updateVelocity = (viewportSize: ViewportSize) => (
+  velocity: Velocity
+): Velocity => {
   const rect = ball.getBoundingClientRect();
 
   const shouldFlipHorizontally =
     (rect.right + velocity.x > viewportSize.width && velocity.x > 0) ||
-    (rect.left + velocity.x < 0 && velocity.x < 0)
+    (rect.left + velocity.x < 0 && velocity.x < 0);
   const xMultiplier = shouldFlipHorizontally ? -1 : 1;
 
   const shouldFlipVertically =
     (rect.bottom + velocity.y > viewportSize.height && velocity.y > 0) ||
-    (rect.top + velocity.y < 0 && velocity.y < 0)
+    (rect.top + velocity.y < 0 && velocity.y < 0);
   const yMultiplier = shouldFlipVertically ? -1 : 1;
 
   return {
     x: xMultiplier * velocity.x,
     y: yMultiplier * velocity.y,
-  }
+  };
 };
 
-const updateWorld = ({paddleState, velocity}: GameState) => {
+const updateWorld = ({ paddleState, velocity }: GameState) => {
   leftPaddle.style.top = `${Math.round(paddleState.top)}px`;
   ball.style.left = `${ball.offsetLeft + velocity.x}px`;
   ball.style.top = `${ball.offsetTop + velocity.y}px`;
@@ -112,19 +146,25 @@ const ball = createBallElement();
 document.body.appendChild(ball);
 
 const initialGameState: GameState = {
-  paddleState: {top: 0, appliedButtonPressTimes: {}},
-  velocity: {x: 4, y: 8}
+  paddleState: { top: 0, appliedButtonPressTimes: {} },
+  velocity: { x: 4, y: 8 },
 };
 
 const ticks = interval(0, animationFrameScheduler).pipe(take(1000));
 const viewportSizeObservable = fromEvent(window, 'resize').pipe(
   startWith({}),
-  map(_ => getViewportSize())
+  map((_) => getViewportSize())
 );
 
-ticks.pipe(
-  map(() => window.performance.now()),
-  withLatestFrom(viewportSizeObservable, controllerStateObservable),
-  map(([timestamp, viewportSize, controllerState]) => ({timestamp, viewportSize, controllerState})),
-  scan(updateGameState, initialGameState)
-).subscribe(updateWorld);
+ticks
+  .pipe(
+    map(() => window.performance.now()),
+    withLatestFrom(viewportSizeObservable, controllerStateObservable),
+    map(([timestamp, viewportSize, controllerState]) => ({
+      timestamp,
+      viewportSize,
+      controllerState,
+    })),
+    scan(updateGameState, initialGameState)
+  )
+  .subscribe(updateWorld);
