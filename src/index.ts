@@ -1,33 +1,20 @@
-import { interval, fromEvent, animationFrameScheduler } from 'rxjs';
-import { take, map, startWith, withLatestFrom, scan } from 'rxjs/operators';
+import { interval, animationFrameScheduler } from 'rxjs';
+import { take, map, withLatestFrom, scan } from 'rxjs/operators';
 import * as S from 'sanctuary';
 import * as R from 'Ramda';
 
-import {
-  ControllerState,
-  controllerStateObservable,
-  totalControllerTimes,
-  totalTimeDiff,
-} from './controller';
+import { ControllerState, controllerStateObservable } from './controller';
+import { PaddleState, updatePaddleState, updateWorldPaddle } from './paddle';
+import { ViewportSize, viewportSizeObservable } from './viewport';
 
 interface GameState {
   paddleState: PaddleState;
   velocity: Velocity;
 }
 
-interface PaddleState {
-  top: number;
-  appliedButtonPressTimes: { [key: string]: number };
-}
-
 interface Velocity {
   x: number;
   y: number;
-}
-
-interface ViewportSize {
-  height: number;
-  width: number;
 }
 
 function createBallElement(): HTMLElement {
@@ -39,32 +26,6 @@ function createBallElement(): HTMLElement {
   element.style.position = 'absolute';
   return element;
 }
-
-function createPaddle(): HTMLElement {
-  const element = document.createElement('div');
-  element.style.width = '15px';
-  element.style.height = '75px';
-  element.style.backgroundColor = 'blue';
-  element.style.position = 'absolute';
-  return element;
-}
-const leftPaddle = createPaddle();
-leftPaddle.style.left = '0px';
-leftPaddle.style.top = '0px';
-document.body.appendChild(leftPaddle);
-
-const paddleSpeed = 0.5;
-
-const getViewportSize = (): ViewportSize => ({
-  height: Math.max(
-    document.documentElement.clientHeight || 0,
-    window.innerHeight || 0
-  ),
-  width: Math.max(
-    document.documentElement.clientWidth || 0,
-    window.innerWidth || 0
-  ),
-});
 
 const updateGameState = (
   gameState: GameState,
@@ -85,28 +46,6 @@ const updateGameState = (
     },
     gameState
   );
-};
-
-const updatePaddleState = (
-  timestamp: number,
-  viewportSize: ViewportSize,
-  controllerState: ControllerState
-) => (paddleState: PaddleState): PaddleState => {
-  const buttonPressesToApply = totalControllerTimes(timestamp, controllerState);
-  const diff = totalTimeDiff({
-    old: paddleState.appliedButtonPressTimes,
-    next: buttonPressesToApply,
-  });
-  const newTop = S.pipe([
-    R.defaultTo(0),
-    S.add(diff * paddleSpeed),
-    S.max(0),
-    S.min(viewportSize.height - leftPaddle.offsetHeight),
-  ])(paddleState.top);
-  return {
-    top: newTop,
-    appliedButtonPressTimes: buttonPressesToApply,
-  };
 };
 
 const updateVelocity = (viewportSize: ViewportSize) => (
@@ -131,7 +70,7 @@ const updateVelocity = (viewportSize: ViewportSize) => (
 };
 
 const updateWorld = ({ paddleState, velocity }: GameState) => {
-  leftPaddle.style.top = `${Math.round(paddleState.top)}px`;
+  updateWorldPaddle(paddleState);
   ball.style.left = `${ball.offsetLeft + velocity.x}px`;
   ball.style.top = `${ball.offsetTop + velocity.y}px`;
 };
@@ -145,10 +84,6 @@ const initialGameState: GameState = {
 };
 
 const ticks = interval(0, animationFrameScheduler).pipe(take(1000));
-const viewportSizeObservable = fromEvent(window, 'resize').pipe(
-  startWith({}),
-  map((_) => getViewportSize())
-);
 
 ticks
   .pipe(
