@@ -32,10 +32,16 @@ const ticks = interval(10).pipe(
 );
 ticks.subscribe(([_, viewportState]) => {
   const rect = ball.getBoundingClientRect();
-  if (rect.right + velocity.x > viewportState.width || rect.left + velocity.x < 0) {
+  const shouldFlipHorizontally =
+    (rect.right + velocity.x > viewportState.width && velocity.x > 0) ||
+    (rect.left + velocity.x < 0 && velocity.x < 0)
+  if (shouldFlipHorizontally) {
     velocity.x *= -1;
   }
-  if (rect.bottom + velocity.y > viewportState.height || rect.top + velocity.y < 0) {
+  const shouldFlipVertically =
+    (rect.bottom + velocity.y > viewportState.height && velocity.y > 0) ||
+    (rect.top + velocity.y < 0 && velocity.y < 0)
+  if (shouldFlipVertically) {
     velocity.y *= -1;
   }
   ball.style.left = `${ball.offsetLeft + velocity.x}px`;
