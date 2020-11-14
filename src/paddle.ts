@@ -13,6 +13,11 @@ export interface PaddleState {
   appliedButtonPressTimes: { [key: string]: number };
 }
 
+export const initialPaddleState: PaddleState = {
+  top: 0,
+  appliedButtonPressTimes: {},
+};
+
 function createPaddle(): HTMLElement {
   const element = document.createElement('div');
   element.style.width = '15px';
