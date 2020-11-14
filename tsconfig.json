@@ -3,10 +3,9 @@
     "outDir": "./dist/",
     "sourceMap": true,
     "noImplicitAny": true,
-    "module": "es6",
+    "module": "commonjs",
     "moduleResolution": "node",
     "target": "es5",
     "allowJs": true
-  },
-  "include": ["src/**/*.ts"]
+  }
 }
