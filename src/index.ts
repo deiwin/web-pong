@@ -21,10 +21,10 @@ function createBallElement() {
   return element;
 }
 
-const getViewportWidth = (): number =>
-  Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
-const getViewportHeight = (): number =>
-  Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+const getViewportState = (): ViewportState => ({
+  height: Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0),
+  width: Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
+});
 
 const updateVelocity = (velocity: Velocity, viewportState: ViewportState): Velocity => {
   const rect = ball.getBoundingClientRect();
@@ -58,7 +58,7 @@ const initialVelocity: Velocity = {x: 4, y: 8};
 const ticks = interval(10).pipe(take(1000));
 const viewportStateObservable = fromEvent(window, 'resize').pipe(
   startWith({}),
-  map(_ => ({height: getViewportHeight(), width: getViewportWidth()}))
+  map(_ => getViewportState())
 );
 
 ticks.pipe(
