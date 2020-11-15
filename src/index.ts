@@ -86,10 +86,9 @@ const initialGameState: GameState = {
   ballState: initialBallState,
 };
 
-const ticks = interval(0, animationFrameScheduler).pipe(take(5000));
-
-ticks
+interval(0, animationFrameScheduler)
   .pipe(
+    take(5000),
     map(() => window.performance.now()),
     withLatestFrom(viewportSizeObservable, controllerStateObservable),
     map(([timestamp, viewportSize, controllerState]) => ({
