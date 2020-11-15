@@ -1,5 +1,12 @@
 import { interval, animationFrameScheduler } from 'rxjs';
-import { take, map, withLatestFrom, scan } from 'rxjs/operators';
+import {
+  take,
+  map,
+  withLatestFrom,
+  scan,
+  tap,
+  takeWhile,
+} from 'rxjs/operators';
 import * as S from 'sanctuary';
 import * as R from 'Ramda';
 
@@ -88,7 +95,6 @@ const initialGameState: GameState = {
 
 interval(0, animationFrameScheduler)
   .pipe(
-    take(5000),
     map(() => window.performance.now()),
     withLatestFrom(viewportSizeObservable, controllerStateObservable),
     map(([timestamp, viewportSize, controllerState]) => ({
@@ -96,6 +102,8 @@ interval(0, animationFrameScheduler)
       viewportSize,
       controllerState,
     })),
-    scan(updateGameState, initialGameState)
+    scan(updateGameState, initialGameState),
+    tap(updateWorld),
+    takeWhile(({ gameOver }) => !gameOver)
   )
-  .subscribe(updateWorld);
+  .subscribe();
